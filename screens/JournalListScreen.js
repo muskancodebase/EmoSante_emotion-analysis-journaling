@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 
@@ -10,19 +10,13 @@ export default function JournalListScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Journal</Text>
-
-      <View style={styles.searchWrapper}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search entries"
-          placeholderTextColor={colors.textMutedSoft}
-        />
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>My Journal</Text>
         <TouchableOpacity
-          style={styles.advancedButton}
+          style={styles.searchIconButton}
           onPress={() => navigation.navigate('SearchEntries')}
         >
-          <Text style={styles.advancedButtonText}>Advanced</Text>
+          <Text style={styles.searchIconText}>🔍</Text>
         </TouchableOpacity>
       </View>
 
@@ -131,8 +125,14 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xxl + spacing.md,
     paddingBottom: spacing.xl,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
   },
   title: {
     fontFamily: typography.fontFamilyPrimary,
@@ -140,34 +140,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  searchWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  searchInput: {
     flex: 1,
-    fontFamily: typography.fontFamilyPrimary,
-    backgroundColor: colors.surface,
-    borderRadius: 25,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primaryLight,
-    color: colors.text,
-    marginRight: spacing.sm,
   },
-  advancedButton: {
-    paddingHorizontal: spacing.md,
+  searchIconButton: {
+    marginLeft: spacing.sm,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 999,
     backgroundColor: colors.surfaceSoft,
   },
-  advancedButtonText: {
+  searchIconText: {
     fontFamily: typography.fontFamilyPrimary,
-    fontSize: typography.sizes.caption,
+    fontSize: typography.sizes.subtitle,
     color: colors.primary,
   },
   summaryRow: {

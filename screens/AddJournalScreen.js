@@ -5,9 +5,18 @@ import { useJournal } from '../context/JournalContext';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
+const MOODS = [
+  { label: 'Happy', color: '#FFE6B3' },
+  { label: 'Calm', color: '#D9F3FF' },
+  { label: 'Neutral', color: '#E6E0D8' },
+  { label: 'Tired', color: '#F5D9FF' },
+  { label: 'Sad', color: '#F7C6C6' },
+];
+
 export default function AddJournalScreen({ navigation }) {
   const { addEntry } = useJournal();
   const [text, setText] = useState('');
+  const [emotion, setEmotion] = useState('Neutral');
 
   const handleSave = () => {
     if (!text.trim()) {
@@ -28,7 +37,7 @@ export default function AddJournalScreen({ navigation }) {
       title: 'New entry',
       preview: text.trim(),
       dateLabel,
-      emotion: 'Neutral',
+      emotion,
     });
 
     navigation.navigate('JournalList');
@@ -48,6 +57,37 @@ export default function AddJournalScreen({ navigation }) {
           value={text}
           onChangeText={setText}
         />
+
+        <View style={styles.moodsRow}>
+          {MOODS.map((mood) => {
+            const selected = emotion === mood.label;
+            return (
+              <TouchableOpacity
+                key={mood.label}
+                style={[
+                  styles.moodChip,
+                  { backgroundColor: mood.color },
+                  selected && styles.moodChipSelected,
+                ]}
+                activeOpacity={0.9}
+                onPress={() => setEmotion(mood.label)}
+              >
+                <Text
+                  style={selected ? styles.moodChipTextSelected : styles.moodChipText}
+                >
+                  {mood.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <TouchableOpacity
+          style={styles.audioButton}
+          onPress={() => navigation.navigate('AudioToText')}
+        >
+          <Text style={styles.audioButtonText}>🎙️ Audio to text</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.buttonRow}>
@@ -86,7 +126,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: spacing.xl,
+    marginBottom: spacing.sm,
   },
   textArea: {
     fontFamily: typography.fontFamilyPrimary,
@@ -100,6 +140,51 @@ const styles = StyleSheet.create({
     color: colors.text,
     minHeight: 300,
     ...shadows.softer,
+  },
+  moodsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  audioButton: {
+    alignSelf: 'flex-end',
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.surfaceSoft,
+    ...shadows.soft,
+  },
+  audioButtonText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  moodChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
+    opacity: 0.9,
+  },
+  moodChipSelected: {
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
+  },
+  moodChipText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.text,
+  },
+  moodChipTextSelected: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.text,
+    fontWeight: '600',
   },
   buttonRow: {
     flexDirection: 'row',

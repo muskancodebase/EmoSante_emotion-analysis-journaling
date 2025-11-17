@@ -1,10 +1,52 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import theme from '../theme';
+import { useFeedback } from '../context/FeedbackContext';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
 export default function LoginScreen({ navigation }) {
+  const { showToast } = useFeedback();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
+  const [formError, setFormError] = useState('');
+
+  const handleLogin = () => {
+    const errors = { email: '', password: '' };
+    let hasError = false;
+
+    if (!email.trim()) {
+      errors.email = 'Email cannot be empty';
+      hasError = true;
+    }
+
+    if (!password || password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+      hasError = true;
+    }
+
+    setFieldErrors(errors);
+    if (hasError) {
+      setFormError('');
+      return;
+    }
+
+    const isValid = email.trim() === 'admin' && password === 'demo123';
+
+    if (!isValid) {
+      setFormError('Invalid username or password');
+      return;
+    }
+
+    setFormError('');
+    showToast('success', 'Login successful');
+
+    setTimeout(() => {
+      navigation.navigate('JournalList');
+    }, 1500);
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.card}>
@@ -19,7 +61,12 @@ export default function LoginScreen({ navigation }) {
               placeholderTextColor={colors.textMutedSoft}
               keyboardType="email-address"
               autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
             />
+            {fieldErrors.email ? (
+              <Text style={styles.errorText}>{fieldErrors.email}</Text>
+            ) : null}
           </View>
 
           <View style={styles.fieldGroup}>
@@ -29,8 +76,15 @@ export default function LoginScreen({ navigation }) {
               placeholder="••••••••"
               placeholderTextColor={colors.textMutedSoft}
               secureTextEntry
+              value={password}
+              onChangeText={setPassword}
             />
+            {fieldErrors.password ? (
+              <Text style={styles.errorText}>{fieldErrors.password}</Text>
+            ) : null}
           </View>
+
+          {formError ? <Text style={styles.formErrorText}>{formError}</Text> : null}
         </View>
 
         <TouchableOpacity style={styles.forgotPasswordButton}>
@@ -39,7 +93,7 @@ export default function LoginScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('JournalList')}
+          onPress={handleLogin}
         >
           <Text style={styles.primaryButtonText}>Login</Text>
         </TouchableOpacity>
@@ -103,6 +157,19 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryLight,
     fontSize: typography.sizes.body,
     color: colors.text,
+  },
+  errorText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.dangerText,
+    marginTop: spacing.xs,
+  },
+  formErrorText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.body,
+    color: colors.dangerText,
+    marginTop: spacing.sm,
+    textAlign: 'center',
   },
   forgotPasswordButton: {
     marginBottom: spacing.lg,
