@@ -59,7 +59,7 @@ export default function SearchEntriesScreen({ navigation }) {
               key={entry.id}
               style={styles.entryCard}
               activeOpacity={0.9}
-              onPress={() => navigation.navigate('EditJournal')}
+              onPress={() => navigation.navigate('EditJournal', { entryId: entry.id })}
             >
               <View style={styles.entryHeaderRow}>
                 <Text style={styles.entryTitle}>{entry.title}</Text>

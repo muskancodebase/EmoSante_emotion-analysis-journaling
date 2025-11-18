@@ -34,8 +34,18 @@ export function JournalProvider({ children }) {
     ]);
   };
 
+  const updateEntry = (id, updates) => {
+    setEntries((current) =>
+      current.map((entry) => (entry.id === id ? { ...entry, ...updates } : entry))
+    );
+  };
+
+  const deleteEntry = (id) => {
+    setEntries((current) => current.filter((entry) => entry.id !== id));
+  };
+
   const value = useMemo(
-    () => ({ entries, addEntry }),
+    () => ({ entries, addEntry, updateEntry, deleteEntry }),
     [entries]
   );
 

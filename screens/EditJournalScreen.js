@@ -1,10 +1,77 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import theme from '../theme';
+import { useJournal } from '../context/JournalContext';
+import { useFeedback } from '../context/FeedbackContext';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
-export default function EditJournalScreen({ navigation }) {
+export default function EditJournalScreen({ navigation, route }) {
+  const { entries, updateEntry, deleteEntry } = useJournal();
+  const { showToast, showDialog } = useFeedback();
+  const entryId = route?.params?.entryId;
+  const entry = entries.find((item) => item.id === entryId);
+
+  const [text, setText] = useState(entry?.preview ?? '');
+  const [error, setError] = useState('');
+
+  const handleUpdate = () => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setError('Entry cannot be saved without text');
+      return;
+    }
+
+    if (!entry) {
+      return;
+    }
+
+    const now = new Date();
+    const dateLabel =
+      now.toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+      }) +
+      ' · ' +
+      now.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+
+    updateEntry(entry.id, {
+      preview: trimmed,
+      dateLabel,
+    });
+
+    setError('');
+    showToast('success', 'Entry updated');
+
+    setTimeout(() => {
+      navigation.navigate('JournalList');
+    }, 1500);
+  };
+
+  const handleDelete = () => {
+    if (!entry) {
+      navigation.navigate('JournalList');
+      return;
+    }
+
+    showDialog({
+      title: 'Delete entry?',
+      message: 'Are you sure you want to delete this entry? This cannot be undone.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      variant: 'danger',
+      onConfirm: () => {
+        deleteEntry(entry.id);
+        showToast('success', 'Entry deleted');
+        navigation.navigate('JournalList');
+      },
+    });
+  };
+
+  const handleCancel = () => {
+    navigation.navigate('JournalList');
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -12,23 +79,30 @@ export default function EditJournalScreen({ navigation }) {
 
         <TextInput
           style={styles.textArea}
-          defaultValue="This is a sample journal text that you will be able to edit based on how you feel."
+          value={text}
+          onChangeText={(value) => {
+            setText(value);
+            if (error) {
+              setError('');
+            }
+          }}
           multiline
           textAlignVertical="top"
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
 
       <View style={styles.actionRow}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => navigation.navigate('JournalList')}
+          onPress={handleUpdate}
         >
           <Text style={styles.primaryButtonText}>Update</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.dangerButton}
-          onPress={() => navigation.navigate('JournalList')}
+          onPress={handleDelete}
         >
           <Text style={styles.dangerButtonText}>Delete</Text>
         </TouchableOpacity>
@@ -36,7 +110,7 @@ export default function EditJournalScreen({ navigation }) {
 
       <TouchableOpacity
         style={styles.cancelLink}
-        onPress={() => navigation.navigate('JournalList')}
+        onPress={handleCancel}
       >
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
@@ -75,6 +149,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     minHeight: 300,
     ...shadows.softer,
+  },
+  errorText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.dangerText,
+    marginTop: spacing.xs,
   },
   actionRow: {
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
+import { useFeedback } from '../context/FeedbackContext';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
@@ -15,12 +16,15 @@ const MOODS = [
 
 export default function AddJournalScreen({ navigation }) {
   const { addEntry } = useJournal();
+  const { showToast } = useFeedback();
   const [text, setText] = useState('');
   const [emotion, setEmotion] = useState('Neutral');
+  const [error, setError] = useState('');
 
   const handleSave = () => {
-    if (!text.trim()) {
-      navigation.navigate('JournalList');
+    const trimmed = text.trim();
+    if (!trimmed) {
+      setError('Entry cannot be saved without text');
       return;
     }
 
@@ -35,12 +39,19 @@ export default function AddJournalScreen({ navigation }) {
 
     addEntry({
       title: 'New entry',
-      preview: text.trim(),
+      preview: trimmed,
       dateLabel,
       emotion,
     });
 
-    navigation.navigate('JournalList');
+    setError('');
+    showToast('success', 'Entry saved');
+    setText('');
+    setEmotion('Neutral');
+
+    setTimeout(() => {
+      navigation.navigate('JournalList');
+    }, 1500);
   };
 
   return (
@@ -55,8 +66,14 @@ export default function AddJournalScreen({ navigation }) {
           multiline
           textAlignVertical="top"
           value={text}
-          onChangeText={setText}
+          onChangeText={(value) => {
+            setText(value);
+            if (error) {
+              setError('');
+            }
+          }}
         />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.moodsRow}>
           {MOODS.map((mood) => {
@@ -140,6 +157,12 @@ const styles = StyleSheet.create({
     color: colors.text,
     minHeight: 300,
     ...shadows.softer,
+  },
+  errorText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.dangerText,
+    marginTop: spacing.xs,
   },
   moodsRow: {
     flexDirection: 'row',
