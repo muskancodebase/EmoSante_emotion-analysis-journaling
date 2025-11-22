@@ -1,23 +1,69 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token
-from models.models import User
 from utils.db import db
+from models.models import User
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 
 auth_bp = Blueprint("auth", __name__)
 
-@auth_bp.route("/register", methods=["POST"])
-def register():
-    data = request.json
-    user = User(username=data["username"], password=data["password"])
-    db.session.add(user)
-    db.session.commit()
-    return jsonify({"message": "User registered successfully!"})
+# -------------------------
+# UC-01: SIGNUP (REGISTER)
+# -------------------------
+@auth_bp.route('/signup', methods=['POST'])
+def signup():
+    data = request.get_json()
 
+    name = data.get("name")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not name or not email or not password:
+        return jsonify({"message": "Name, email and password required"}), 400
+
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({"message": "User already exists"}), 409
+
+    new_user = User(name=name, email=email)
+    new_user.set_password(password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({"message": "Signup successful"}), 201
+
+# -------------------------
+# UC-01: LOGIN
+# -------------------------
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
-    user = User.query.filter_by(username=data["username"]).first()
-    if user and user.password == data["password"]:
-        token = create_access_token(identity=user.id)
-        return jsonify(access_token=token)
-    return jsonify({"error": "Invalid credentials"}), 401
+    email = data.get("email")
+    password = data.get("password")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or not user.check_password(password):
+        return jsonify({"message": "Incorrect email or password"}), 401
+
+    # Use string identity to avoid "Subject must be a string" 422 errors with newer PyJWT.
+    token = create_access_token(identity=str(user.id))
+
+    return jsonify({
+        "message": "Login successful",
+        "token": token,
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+        },
+    }), 200
+
+
+# -------------------------
+# UC-02: LOGOUT
+# (Frontend just deletes token)
+# -------------------------
+@auth_bp.route("/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    return jsonify({"message": "Logout successful"}), 200
