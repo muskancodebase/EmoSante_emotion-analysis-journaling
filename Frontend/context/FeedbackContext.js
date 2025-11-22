@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useCallback } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, Keyboard } from 'react-native';
 import theme from '../theme';
 
 const { colors, spacing, radii, typography, shadows } = theme;
@@ -11,6 +11,7 @@ export function FeedbackProvider({ children }) {
   const [dialog, setDialog] = useState(null); // { title, message, ... }
   const hideTimeoutRef = useRef(null);
   const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(20)).current;
 
   const clearToast = useCallback(() => {
     setToast(null);
@@ -19,30 +20,52 @@ export function FeedbackProvider({ children }) {
   const showToast = useCallback((type, message, options = {}) => {
     const duration = options.duration ?? 1500;
 
+    // Smooth UX: hide keyboard before showing toast/snackbar.
+    Keyboard.dismiss();
+
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
       hideTimeoutRef.current = null;
     }
 
+    // Reset animation values for a fresh show.
+    opacity.setValue(0);
+    translateY.setValue(20);
+
     setToast({ type, message });
 
-    // Fade in
-    Animated.timing(opacity, {
-      toValue: 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-
-    hideTimeoutRef.current = setTimeout(() => {
+    // Slide up + fade in.
+    Animated.parallel([
       Animated.timing(opacity, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(translateY, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => {
+      }),
+    ]).start();
+
+    hideTimeoutRef.current = setTimeout(() => {
+      // Slide slightly down + fade out.
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: 10,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(() => {
         clearToast();
       });
     }, duration);
-  }, [clearToast, opacity]);
+  }, [clearToast, opacity, translateY]);
 
   const showDialog = useCallback((config) => {
     setDialog({
@@ -90,8 +113,14 @@ export function FeedbackProvider({ children }) {
       <View style={{ flex: 1 }}>
         {children}
         {toast && (
-          <View pointerEvents="none" style={styles.toastOverlay}>
-            <Animated.View style={[styles.toastCardBase, toastStyles.card, { opacity }] }>
+          <View pointerEvents="box-none" style={styles.toastOverlay}>
+            <Animated.View
+              style={[
+                styles.toastCardBase,
+                toastStyles.card,
+                { opacity, transform: [{ translateY }] },
+              ]}
+            >
               <Text style={toastStyles.text}>{toast.message}</Text>
             </Animated.View>
           </View>
@@ -166,13 +195,14 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingBottom: spacing.xl,
   },
   toastCardBase: {
-    maxWidth: '80%',
+    maxWidth: '90%',
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    borderRadius: radii.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 999,
     ...shadows.soft,
   },
   toastCardSuccess: {

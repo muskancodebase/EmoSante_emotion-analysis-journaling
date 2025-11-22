@@ -39,7 +39,7 @@ export function JournalProvider({ children }) {
     fetchEntries();
   }, [token, showToast]);
 
-  const addEntry = async ({ content, emotion }) => {
+  const addEntry = async ({ title, content, emotion }) => {
     if (!token) {
       showToast('error', 'You must be logged in to add entries');
       return null;
@@ -52,7 +52,7 @@ export function JournalProvider({ children }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content, emotion }),
+        body: JSON.stringify({ title, content, emotion }),
       });
 
       const data = await res.json();
@@ -71,7 +71,7 @@ export function JournalProvider({ children }) {
     }
   };
 
-  const updateEntry = async (id, { content, emotion }) => {
+  const updateEntry = async (id, { title, content, emotion }) => {
     if (!token) {
       showToast('error', 'You must be logged in to update entries');
       return null;
@@ -84,7 +84,7 @@ export function JournalProvider({ children }) {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ content, emotion }),
+        body: JSON.stringify({ title, content, emotion }),
       });
 
       const data = await res.json();
@@ -135,7 +135,7 @@ export function JournalProvider({ children }) {
 
   const value = useMemo(
     () => ({ entries, addEntry, updateEntry, deleteEntry }),
-    [entries, addEntry, updateEntry, deleteEntry]
+    [entries]
   );
 
   return <JournalContext.Provider value={value}>{children}</JournalContext.Provider>;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 import { useFeedback } from '../context/FeedbackContext';
+import { MOOD_OPTIONS } from '../context/moodPalette';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
@@ -12,11 +13,18 @@ export default function EditJournalScreen({ navigation, route }) {
   const entryId = route?.params?.entryId;
   const entry = entries.find((item) => item.id === entryId);
 
-  const [text, setText] = useState(entry?.preview ?? '');
+  const [title, setTitle] = useState(entry?.title ?? '');
+  const [text, setText] = useState(entry?.content ?? entry?.preview ?? '');
+  const [emotion, setEmotion] = useState(entry?.emotion ?? 'Neutral');
   const [error, setError] = useState('');
 
   const handleUpdate = async () => {
+    const trimmedTitle = title.trim();
     const trimmed = text.trim();
+    if (!trimmedTitle) {
+      setError('Title cannot be empty');
+      return;
+    }
     if (!trimmed) {
       setError('Entry cannot be saved without text');
       return;
@@ -27,8 +35,9 @@ export default function EditJournalScreen({ navigation, route }) {
     }
 
     const result = await updateEntry(entry.id, {
+      title: trimmedTitle,
       content: trimmed,
-      emotion: entry.emotion,
+      emotion,
     });
 
     if (!result) {
@@ -68,9 +77,30 @@ export default function EditJournalScreen({ navigation, route }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+    >
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>Edit Entry</Text>
+
+        <TextInput
+          style={styles.titleInput}
+          value={title}
+          placeholder="Edit title"
+          placeholderTextColor={colors.textMutedSoft}
+          onChangeText={(value) => {
+            setTitle(value);
+            if (error) {
+              setError('');
+            }
+          }}
+        />
 
         <TextInput
           style={styles.textArea}
@@ -85,7 +115,31 @@ export default function EditJournalScreen({ navigation, route }) {
           textAlignVertical="top"
         />
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-      </View>
+
+        <View style={styles.moodsRow}>
+          {MOOD_OPTIONS.map((mood) => {
+            const selected = emotion === mood.label;
+            return (
+              <TouchableOpacity
+                key={mood.label}
+                style={[
+                  styles.moodChip,
+                  { backgroundColor: mood.color },
+                  selected && styles.moodChipSelected,
+                ]}
+                activeOpacity={0.9}
+                onPress={() => setEmotion(mood.label)}
+              >
+                <Text
+                  style={selected ? styles.moodChipTextSelected : styles.moodChipText}
+                >
+                  {mood.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       <View style={styles.actionRow}>
         <TouchableOpacity
@@ -109,7 +163,7 @@ export default function EditJournalScreen({ navigation, route }) {
       >
         <Text style={styles.cancelText}>Cancel</Text>
       </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -124,6 +178,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  contentContainer: {
+    paddingBottom: spacing.xl,
+  },
   title: {
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.title,
@@ -131,6 +188,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.xl,
+  },
+  titleInput: {
+    fontFamily: typography.fontFamilyPrimary,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primaryLight,
+    fontSize: typography.sizes.body,
+    color: colors.text,
+    marginBottom: spacing.md,
+    ...shadows.softer,
   },
   textArea: {
     fontFamily: typography.fontFamilyPrimary,
@@ -150,6 +220,35 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.caption,
     color: colors.dangerText,
     marginTop: spacing.xs,
+  },
+  moodsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  moodChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    marginRight: spacing.sm,
+    marginBottom: spacing.sm,
+    opacity: 0.9,
+  },
+  moodChipSelected: {
+    borderWidth: 1,
+    borderColor: colors.primaryDark,
+  },
+  moodChipText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.text,
+  },
+  moodChipTextSelected: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.text,
+    fontWeight: '600',
   },
   actionRow: {
     flexDirection: 'row',

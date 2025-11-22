@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 import FloatingActionMenu from '../components/FloatingActionMenu';
+import { MOOD_COLORS } from '../context/moodPalette';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
@@ -12,7 +13,10 @@ export default function JournalListScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>My Journal</Text>
+        <View style={styles.titleWrapper}>
+          <Text style={styles.title}>My Journal</Text>
+          <View style={styles.titleUnderline} />
+        </View>
         <TouchableOpacity
           style={styles.searchIconButton}
           onPress={() => navigation.navigate('Settings')}
@@ -35,16 +39,16 @@ export default function JournalListScreen({ navigation }) {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.moodScrollContent}
           >
-            <View style={[styles.moodBadge, styles.moodBadgeHappy]}>
+            <View style={[styles.moodBadge, { backgroundColor: MOOD_COLORS.Happy }]}>
               <Text style={styles.moodBadgeText}>Happy</Text>
             </View>
-            <View style={[styles.moodBadge, styles.moodBadgeCalm]}>
+            <View style={[styles.moodBadge, { backgroundColor: MOOD_COLORS.Calm }]}>
               <Text style={styles.moodBadgeText}>Calm</Text>
             </View>
-            <View style={[styles.moodBadge, styles.moodBadgeTired]}>
+            <View style={[styles.moodBadge, { backgroundColor: MOOD_COLORS.Tired }]}>
               <Text style={styles.moodBadgeText}>Tired</Text>
             </View>
-            <View style={[styles.moodBadge, styles.moodBadgeNeutral]}>
+            <View style={[styles.moodBadge, { backgroundColor: MOOD_COLORS.Neutral }]}>
               <Text style={styles.moodBadgeText}>Neutral</Text>
             </View>
           </ScrollView>
@@ -76,23 +80,21 @@ export default function JournalListScreen({ navigation }) {
             <View style={styles.entryHeaderRow}>
               <Text style={styles.entryTitle}>{entry.title}</Text>
               <TouchableOpacity
-                style={
-                  entry.emotion === 'Calm'
-                    ? styles.emotionTag
-                    : styles.emotionTagNeutral
-                }
+                style={[
+                  styles.emotionTag,
+                  {
+                    backgroundColor:
+                      entry.emotion && MOOD_COLORS[entry.emotion]
+                        ? MOOD_COLORS[entry.emotion]
+                        : MOOD_COLORS.Neutral,
+                  },
+                ]}
                 activeOpacity={0.9}
                 onPress={() =>
                   navigation.navigate('EmotionTag', { emotion: entry.emotion })
                 }
               >
-                <Text
-                  style={
-                    entry.emotion === 'Calm'
-                      ? styles.emotionTagText
-                      : styles.emotionTagTextNeutral
-                  }
-                >
+                <Text style={styles.emotionTagText}>
                   {entry.emotion}
                 </Text>
               </TouchableOpacity>
@@ -127,9 +129,12 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  titleWrapper: {
+    alignSelf: 'flex-start',
   },
   title: {
     fontFamily: typography.fontFamilyPrimary,
@@ -138,6 +143,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'left',
     letterSpacing: 0.5,
+  },
+  titleUnderline: {
+    marginTop: spacing.xs,
+    height: 3,
+    borderRadius: 999,
+    backgroundColor: colors.primaryLight,
+    width: '60%',
   },
   searchIconButton: {
     marginLeft: spacing.sm,
@@ -185,18 +197,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginRight: spacing.sm,
   },
-  moodBadgeHappy: {
-    backgroundColor: '#FFE6B3',
-  },
-  moodBadgeCalm: {
-    backgroundColor: '#D9F3FF',
-  },
-  moodBadgeTired: {
-    backgroundColor: '#F5D9FF',
-  },
-  moodBadgeNeutral: {
-    backgroundColor: '#E6E0D8',
-  },
+  // Mood badge colors now come from MOOD_COLORS for consistency.
   moodBadgeText: {
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.caption,
@@ -271,20 +272,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: '#D9F3FF',
-  },
-  emotionTagNeutral: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    backgroundColor: '#E6E0D8',
   },
   emotionTagText: {
-    fontFamily: typography.fontFamilyPrimary,
-    fontSize: typography.sizes.caption,
-    color: colors.text,
-  },
-  emotionTagTextNeutral: {
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.caption,
     color: colors.text,

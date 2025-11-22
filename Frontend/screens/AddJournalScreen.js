@@ -1,34 +1,34 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 import { useFeedback } from '../context/FeedbackContext';
+import { MOOD_OPTIONS } from '../context/moodPalette';
 
 const { colors, spacing, radii, typography, shadows } = theme;
-
-const MOODS = [
-  { label: 'Happy', color: '#FFE6B3' },
-  { label: 'Calm', color: '#D9F3FF' },
-  { label: 'Neutral', color: '#E6E0D8' },
-  { label: 'Tired', color: '#F5D9FF' },
-  { label: 'Sad', color: '#F7C6C6' },
-];
 
 export default function AddJournalScreen({ navigation }) {
   const { addEntry } = useJournal();
   const { showToast } = useFeedback();
+  const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [emotion, setEmotion] = useState('Neutral');
   const [error, setError] = useState('');
 
   const handleSave = async () => {
+    const trimmedTitle = title.trim();
     const trimmed = text.trim();
+    if (!trimmedTitle) {
+      setError('Title cannot be empty');
+      return;
+    }
     if (!trimmed) {
       setError('Entry cannot be saved without text');
       return;
     }
 
     const result = await addEntry({
+      title: trimmedTitle,
       content: trimmed,
       emotion,
     });
@@ -39,6 +39,7 @@ export default function AddJournalScreen({ navigation }) {
 
     setError('');
     showToast('success', 'Entry saved');
+    setTitle('');
     setText('');
     setEmotion('Neutral');
 
@@ -48,9 +49,30 @@ export default function AddJournalScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+    >
+      <ScrollView
+        style={styles.content}
+        contentContainerStyle={styles.contentContainer}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.title}>New Entry</Text>
+
+        <TextInput
+          style={styles.titleInput}
+          placeholder="Give your entry a title"
+          placeholderTextColor={colors.textMutedSoft}
+          value={title}
+          onChangeText={(value) => {
+            setTitle(value);
+            if (error) {
+              setError('');
+            }
+          }}
+        />
 
         <TextInput
           style={styles.textArea}
@@ -69,7 +91,7 @@ export default function AddJournalScreen({ navigation }) {
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         <View style={styles.moodsRow}>
-          {MOODS.map((mood) => {
+          {MOOD_OPTIONS.map((mood) => {
             const selected = emotion === mood.label;
             return (
               <TouchableOpacity
@@ -98,7 +120,7 @@ export default function AddJournalScreen({ navigation }) {
         >
           <Text style={styles.audioButtonText}>🎙️ Audio to text</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       <View style={styles.buttonRow}>
         <TouchableOpacity
@@ -115,7 +137,7 @@ export default function AddJournalScreen({ navigation }) {
           <Text style={styles.secondaryButtonText}>Cancel</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -130,6 +152,9 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
+  contentContainer: {
+    paddingBottom: spacing.xl,
+  },
   title: {
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.title,
@@ -137,6 +162,19 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.sm,
+  },
+  titleInput: {
+    fontFamily: typography.fontFamilyPrimary,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.primaryLight,
+    fontSize: typography.sizes.body,
+    color: colors.text,
+    marginBottom: spacing.md,
+    ...shadows.softer,
   },
   textArea: {
     fontFamily: typography.fontFamilyPrimary,
