@@ -46,6 +46,7 @@ class JournalEntry(db.Model):
         return {
             "id": str(self.id),
             "title": self.title,
+            "content": self.content,
             "preview": preview,
             "dateLabel": date_label,
             "emotion": self.emotion or "Neutral",
