@@ -1,33 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Audio } from 'expo-av';
 import theme from '../theme';
+import { API_BASE_URL } from '../config';
+import { useFeedback } from '../context/FeedbackContext';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
 export default function AudioToTextScreen({ navigation }) {
-  const [phase, setPhase] = useState('idle'); // 'idle' | 'loading' | 'done'
+  const { showToast } = useFeedback();
+  const [phase, setPhase] = useState('idle');
+  const [recording, setRecording] = useState(null);
+  const [transcript, setTranscript] = useState('');
+  const [emotion, setEmotion] = useState('Neutral');
 
-  useEffect(() => {
-    let timer;
-    if (phase === 'loading') {
-      timer = setTimeout(() => {
-        setPhase('done');
-      }, 1200);
+  const startRecording = async () => {
+    try {
+      const permission = await Audio.requestPermissionsAsync();
+      if (!permission.granted) {
+        showToast('error', 'Microphone permission is required');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(recording);
+      setTranscript('');
+      setEmotion('Neutral');
+      setPhase('recording');
+    } catch (err) {
+      showToast('error', 'Could not start recording');
     }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [phase]);
+  };
 
-  const startTranscription = () => {
-    setPhase('loading');
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    try {
+      setPhase('uploading');
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      setRecording(null);
+
+      if (!uri) {
+        showToast('error', 'No audio captured');
+        setPhase('idle');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', {
+        uri,
+        name: 'entry.m4a',
+        type: 'audio/m4a',
+      });
+
+      const res = await fetch(`${API_BASE_URL}/analyze/audio`, {
+        method: 'POST',
+        // Let fetch/React Native set the multipart boundary automatically.
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const message = data.message || 'Could not transcribe audio';
+        showToast('error', message);
+        setPhase('idle');
+        return;
+      }
+
+      setTranscript(data.transcript || '');
+      setEmotion(data.emotion || 'Neutral');
+      setPhase('done');
+    } catch (err) {
+      showToast('error', 'Error while processing audio');
+      setPhase('idle');
+    }
   };
 
   const handleUseTranscription = () => {
-    navigation.goBack();
+    if (!transcript.trim()) {
+      showToast('error', 'No transcription to use');
+      return;
+    }
+
+    navigation.navigate('AddJournal', {
+      transcription: transcript,
+      emotion,
+    });
   };
 
   const handleTryAgain = () => {
+    setTranscript('');
+    setEmotion('Neutral');
     setPhase('idle');
   };
 
@@ -42,31 +115,33 @@ export default function AudioToTextScreen({ navigation }) {
               <Text style={styles.micIcon}>🎙️</Text>
             </View>
             <Text style={styles.cardHint}>
-              Upload or record an audio note to turn it into a journal entry.
+              Record a short audio note and we will turn it into text and analyze its emotion.
             </Text>
 
             <View style={styles.buttonRow}>
               <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={startTranscription}
-              >
-                <Text style={styles.secondaryButtonText}>Upload audio</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={styles.primaryButton}
-                onPress={startTranscription}
+                onPress={startRecording}
               >
-                <Text style={styles.primaryButtonText}>Record audio</Text>
+                <Text style={styles.primaryButtonText}>Start recording</Text>
               </TouchableOpacity>
             </View>
           </>
         )}
 
-        {phase === 'loading' && (
+        {phase === 'recording' && (
+          <View style={styles.loadingBox}>
+            <Text style={styles.loadingText}>Recording... tap stop when you are done.</Text>
+            <TouchableOpacity style={styles.useButton} onPress={stopRecording}>
+              <Text style={styles.useButtonText}>Stop & Transcribe</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {phase === 'uploading' && (
           <View style={styles.loadingBox}>
             <ActivityIndicator color={colors.primary} />
-            <Text style={styles.loadingText}>Transcribing your audio...</Text>
+            <Text style={styles.loadingText}>Transcribing your audio and analyzing emotion...</Text>
           </View>
         )}
 
@@ -74,11 +149,8 @@ export default function AudioToTextScreen({ navigation }) {
           <>
             <View style={styles.previewBox}>
               <Text style={styles.previewLabel}>Transcription preview</Text>
-              <Text style={styles.previewText}>
-                "Today I felt calmer after my walk. I noticed my breathing slowing
-                down and my mind felt less busy. I would like to remember this
-                feeling next time I am stressed."
-              </Text>
+              <Text style={styles.previewText}>{transcript}</Text>
+              <Text style={styles.emotionLabel}>Detected emotion: {emotion}</Text>
             </View>
 
             <TouchableOpacity
@@ -89,7 +161,7 @@ export default function AudioToTextScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.tryAgainButton} onPress={handleTryAgain}>
-              <Text style={styles.tryAgainText}>Try Again</Text>
+              <Text style={styles.tryAgainText}>Record Again</Text>
             </TouchableOpacity>
           </>
         )}
@@ -202,6 +274,13 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.body,
     color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  emotionLabel: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.body,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
   },
   useButton: {
     backgroundColor: colors.primary,

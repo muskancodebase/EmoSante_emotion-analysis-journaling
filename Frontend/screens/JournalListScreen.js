@@ -10,6 +10,13 @@ const { colors, spacing, radii, typography, shadows } = theme;
 export default function JournalListScreen({ navigation }) {
   const { entries } = useJournal();
 
+  const getEntryBackground = (emotion) => {
+    if (emotion && MOOD_COLORS[emotion]) {
+      return MOOD_COLORS[emotion];
+    }
+    return colors.surface;
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -73,7 +80,7 @@ export default function JournalListScreen({ navigation }) {
         {entries.map((entry) => (
           <TouchableOpacity
             key={entry.id}
-            style={styles.entryCard}
+            style={[styles.entryCard, { backgroundColor: getEntryBackground(entry.emotion) }]}
             activeOpacity={0.9}
             onPress={() => navigation.navigate('EditJournal', { entryId: entry.id })}
           >
