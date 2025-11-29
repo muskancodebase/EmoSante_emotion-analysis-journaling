@@ -1,3 +1,14 @@
+<<<<<<< HEAD
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+def init_db(app):
+    with app.app_context():
+        from models.models import User, JournalEntry
+        db.create_all()
+        print("📌 Database initialized successfully!")
+=======
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
@@ -10,3 +21,4 @@ def init_db():
     # the SQLite schema matches the current models.
     db.drop_all()
     db.create_all()
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b

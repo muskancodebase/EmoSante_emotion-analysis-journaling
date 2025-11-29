@@ -1,0 +1,23 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React Native specific
+android/app/build/
+ios/build/
+.expo/
+.expo-shared/
+
+# Python env
+venv/
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# System
+.DS_Store

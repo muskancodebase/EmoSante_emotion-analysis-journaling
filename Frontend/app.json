@@ -2,6 +2,10 @@
   "expo": {
     "name": "SDA_EmoSante",
     "slug": "SDA_EmoSante",
+<<<<<<< HEAD
+    "scheme": "emosante",
+=======
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -13,17 +17,48 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
+<<<<<<< HEAD
+      "supportsTablet": true,
+      "bundleIdentifier": "com.emosante.app"
+=======
       "supportsTablet": true
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+<<<<<<< HEAD
+      "package": "com.emosante.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "emosante"
+            },
+            {
+              "scheme": "exp"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+=======
       "edgeToEdgeEnabled": true
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b
     },
     "web": {
       "favicon": "./assets/favicon.png"
     }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b
