@@ -1,0 +1,17 @@
+<<<<<<< HEAD
+Flask
+Flask-SQLAlchemy
+Flask-Cors
+Flask-JWT-Extended
+Werkzeug
+openai
+python-dotenv
+=======
+Flask
+Flask-SQLAlchemy
+Flask-Cors
+Flask-JWT-Extended
+Werkzeug
+openai
+python-dotenv
+>>>>>>> 7a2e35221d0f276e0a91014c905b43ddbc96f46b
