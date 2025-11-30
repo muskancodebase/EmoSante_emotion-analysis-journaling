@@ -1,7 +1,11 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { API_BASE_URL } from '../config';
 import { useAuth } from './AuthContext';
 import { useFeedback } from './FeedbackContext';
+import { ApiJournalRepository } from '../domain/journal/ApiJournalRepository';
+import { GetAllJournalEntriesUseCase } from '../domain/journal/GetAllJournalEntriesUseCase';
+import { AddJournalEntryUseCase } from '../domain/journal/AddJournalEntryUseCase';
+import { UpdateJournalEntryUseCase } from '../domain/journal/UpdateJournalEntryUseCase';
+import { DeleteJournalEntryUseCase } from '../domain/journal/DeleteJournalEntryUseCase';
 
 const JournalContext = createContext(null);
 
@@ -12,31 +16,24 @@ export function JournalProvider({ children }) {
 
   // Load entries when a token becomes available.
   useEffect(() => {
-    const fetchEntries = async () => {
+    const loadEntries = async () => {
       if (!token) {
         setEntries([]);
         return;
       }
 
       try {
-        const res = await fetch(`${API_BASE_URL}/journal/`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!res.ok) {
-          throw new Error('Failed to load entries');
-        }
-
-        const data = await res.json();
+        const repository = new ApiJournalRepository(token);
+        const useCase = new GetAllJournalEntriesUseCase(repository);
+        const data = await useCase.execute();
         setEntries(Array.isArray(data) ? data : []);
       } catch (err) {
+        // Keep the same user-facing message as before for consistency.
         showToast('error', 'Could not load journal entries');
       }
     };
 
-    fetchEntries();
+    loadEntries();
   }, [token, showToast]);
 
   const addEntry = async ({ title, content, emotion }) => {
@@ -46,27 +43,15 @@ export function JournalProvider({ children }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/journal/`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content, emotion }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const message = data.message || 'Could not save entry';
-        showToast('error', message);
-        return null;
-      }
+      const repository = new ApiJournalRepository(token);
+      const useCase = new AddJournalEntryUseCase(repository);
+      const data = await useCase.execute({ title, content, emotion });
 
       setEntries((current) => [data, ...current]);
       return data;
     } catch (err) {
-      showToast('error', 'Network error while saving entry');
+      const message = err?.message || 'Could not save entry';
+      showToast('error', message);
       return null;
     }
   };
@@ -78,27 +63,15 @@ export function JournalProvider({ children }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/journal/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ title, content, emotion }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const message = data.message || 'Could not update entry';
-        showToast('error', message);
-        return null;
-      }
+      const repository = new ApiJournalRepository(token);
+      const useCase = new UpdateJournalEntryUseCase(repository);
+      const data = await useCase.execute(id, { title, content, emotion });
 
       setEntries((current) => current.map((entry) => (entry.id === String(id) ? data : entry)));
       return data;
     } catch (err) {
-      showToast('error', 'Network error while updating entry');
+      const message = err?.message || 'Could not update entry';
+      showToast('error', message);
       return null;
     }
   };
@@ -110,25 +83,15 @@ export function JournalProvider({ children }) {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/journal/${id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        const message = data.message || 'Could not delete entry';
-        showToast('error', message);
-        return false;
-      }
+      const repository = new ApiJournalRepository(token);
+      const useCase = new DeleteJournalEntryUseCase(repository);
+      await useCase.execute(id);
 
       setEntries((current) => current.filter((entry) => entry.id !== String(id)));
       return true;
     } catch (err) {
-      showToast('error', 'Network error while deleting entry');
+      const message = err?.message || 'Could not delete entry';
+      showToast('error', message);
       return false;
     }
   };

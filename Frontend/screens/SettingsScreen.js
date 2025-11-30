@@ -64,6 +64,16 @@ export default function SettingsScreen({ navigation }) {
           <Text style={styles.dangerButtonText}>Delete account</Text>
         </TouchableOpacity>
       </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionLabel}>Data</Text>
+        <TouchableOpacity
+          style={styles.primaryButton}
+          onPress={() => navigation.navigate('ExportEntries')}
+        >
+          <Text style={styles.primaryButtonText}>Export entries as PDF</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }

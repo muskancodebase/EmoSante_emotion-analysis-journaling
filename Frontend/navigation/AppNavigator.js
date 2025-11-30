@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+
 import HomeScreen from '../screens/HomeScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
@@ -15,6 +16,7 @@ import SearchEntriesScreen from '../screens/SearchEntriesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
+import ExportEntriesScreen from '../screens/ExportEntriesScreen';
 import theme from '../theme';
 
 const { colors } = theme;
@@ -121,6 +123,11 @@ export default function AppNavigator() {
           name="Settings"
           component={SettingsScreen}
           options={{ title: 'Settings', headerShown: false }}
+        />
+        <Stack.Screen
+          name="ExportEntries"
+          component={ExportEntriesScreen}
+          options={{ headerShown: false }}
         />
       </Stack.Navigator>
     </NavigationContainer>
