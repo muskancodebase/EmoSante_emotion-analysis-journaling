@@ -15,8 +15,10 @@ import StreakScreen from '../screens/StreakScreen';
 import SearchEntriesScreen from '../screens/SearchEntriesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ForgotPasswordScreen from '../screens/ForgotPasswordScreen';
+import EnterOtpScreen from '../screens/EnterOtpScreen';
 import ResetPasswordScreen from '../screens/ResetPasswordScreen';
 import theme from '../theme';
+import EmotionReportScreen from '../screens/EmotionReportScreen';
 
 const { colors } = theme;
 
@@ -63,16 +65,11 @@ export default function AppNavigator() {
           component={LoginScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen
-          name="ForgotPassword"
-          component={ForgotPasswordScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="ResetPassword"
-          component={ResetPasswordScreen}
-          options={{ headerShown: false }}
-        />
+        {/* Forgot Password Flow */}
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="EnterOtp" component={EnterOtpScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
+
         <Stack.Screen
           name="SignUp"
           component={SignUpScreen}
@@ -122,6 +119,11 @@ export default function AppNavigator() {
           name="Settings"
           component={SettingsScreen}
           options={{ title: 'Settings', headerShown: false }}
+        />
+        <Stack.Screen 
+          name="EmotionReport" 
+          component={EmotionReportScreen}
+          options={{ title: 'Emotion Report' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

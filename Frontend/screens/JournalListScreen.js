@@ -75,6 +75,14 @@ export default function JournalListScreen({ navigation }) {
           </View>
         </View>
       </View>
+      <TouchableOpacity
+        style={styles.reportButton}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('EmotionReport')}
+      >
+        <Text style={styles.reportButtonText}>Generate Trend Report</Text>
+      </TouchableOpacity>
+
 
       <ScrollView contentContainerStyle={styles.listContent}>
         {entries.map((entry) => (
@@ -288,6 +296,29 @@ const styles = StyleSheet.create({
   emptyHintWrapper: {
     marginTop: spacing.lg,
   },
+  reportButton: {
+  backgroundColor: colors.primary,
+  paddingVertical: spacing.lg,
+  borderRadius: 20,  // ← same look as your cards
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginBottom: spacing.lg,
+  marginTop: spacing.md,
+  shadowColor: colors.primary,
+  shadowOpacity: 0.18,
+  shadowOffset: { width: 0, height: 3 },
+  shadowRadius: 4,
+  elevation: 3,
+},
+reportButtonText: {
+  color: 'white',
+  fontFamily: typography.fontFamilyPrimary,
+  fontSize: typography.sizes.subtitle,
+  fontWeight: '700',
+  letterSpacing: 0.8,
+},
+
+
   emptyHintText: {
     fontFamily: typography.fontFamilyPrimary,
     fontSize: typography.sizes.body,

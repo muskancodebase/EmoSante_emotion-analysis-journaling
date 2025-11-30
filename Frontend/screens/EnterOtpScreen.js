@@ -1,71 +1,42 @@
-// Frontend/screens/ResetPasswordScreen.js
+// Frontend/screens/EnterOtpScreen.js
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-} from 'react-native';
-
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
 import theme from '../theme';
 import { useFeedback } from '../context/FeedbackContext';
 import { API_BASE_URL } from '../config';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
-export default function ResetPasswordScreen({ route, navigation }) {
+export default function EnterOtpScreen({ route, navigation }) {
   const { showToast } = useFeedback();
-
-  // token passed from EnterOtpScreen
-  const token = route.params?.token || '';
-
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const email = route.params?.email || '';
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleResetPassword = async () => {
-    // VALIDATION
-    if (!newPassword) {
-      showToast('error', 'Please enter a new password');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      showToast('error', 'Password must be at least 6 characters');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      showToast('error', 'Passwords do not match');
+  const handleVerifyOtp = async () => {
+    if (!otp.trim()) {
+      showToast('error', 'Please enter the 6-digit code sent to your email');
       return;
     }
 
     setLoading(true);
-
     try {
-      const res = await fetch(`${API_BASE_URL}/reset/confirm`, {
+      const res = await fetch(`${API_BASE_URL}/reset/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: token.trim(),
-          password: newPassword,
-        }),
+        body: JSON.stringify({ email, otp }),
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        showToast('success', data.message || 'Password reset successful!');
-        setTimeout(() => {
-          navigation.navigate('Login');
-        }, 1500);
+      if (res.ok && data.verified) {
+        showToast('success', 'Code verified. Set your new password.');
+        navigation.navigate('ResetPassword', { token: data.reset_token });
       } else {
-        showToast('error', data.message || 'Reset failed');
+        showToast('error', data.message || 'Invalid or expired code');
       }
-    } catch (error) {
-      console.error('Reset password error:', error);
+    } catch (err) {
+      console.error('Verify OTP error:', err);
       showToast('error', 'Cannot connect to server');
     } finally {
       setLoading(false);
@@ -75,59 +46,46 @@ export default function ResetPasswordScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Reset Password</Text>
+        {/* Header */}
+        <Text style={styles.title}>Enter Reset Code</Text>
         <Text style={styles.subtitle}>
-          Enter your new password below
+          We’ve sent a 6-digit code to:
         </Text>
+        <Text style={styles.emailText}>{email}</Text>
 
-        {/* NEW PASSWORD */}
+        {/* Code Input */}
         <View style={styles.fieldGroup}>
-          <Text style={styles.label}>New Password</Text>
+          <Text style={styles.label}>Reset Code</Text>
           <TextInput
             style={styles.input}
-            placeholder="Enter new password"
+            placeholder="......"
             placeholderTextColor={colors.textMutedSoft}
-            secureTextEntry
-            value={newPassword}
-            onChangeText={setNewPassword}
-            editable={!loading}
+            keyboardType="numeric"
+            maxLength={6}
+            value={otp}
+            onChangeText={setOtp}
           />
         </View>
 
-        {/* CONFIRM PASSWORD */}
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Re-enter password"
-            placeholderTextColor={colors.textMutedSoft}
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            editable={!loading}
-          />
-        </View>
-
-        {/* RESET BUTTON */}
+        {/* Verify Button */}
         <TouchableOpacity
           style={[styles.primaryButton, loading && styles.buttonDisabled]}
-          onPress={handleResetPassword}
+          onPress={handleVerifyOtp}
           disabled={loading}
         >
           {loading ? (
             <ActivityIndicator color={colors.textOnPrimary} />
           ) : (
-            <Text style={styles.primaryButtonText}>Reset Password</Text>
+            <Text style={styles.primaryButtonText}>Verify Code</Text>
           )}
         </TouchableOpacity>
 
-        {/* BACK TO LOGIN */}
+        {/* Resend Button */}
         <TouchableOpacity
           style={styles.linkButton}
-          onPress={() => navigation.navigate('Login')}
-          disabled={loading}
+          onPress={() => navigation.navigate('ForgotPassword')}
         >
-          <Text style={styles.linkText}>Back to Login</Text>
+          <Text style={styles.linkText}>Resend Code</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -163,10 +121,18 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.body,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  emailText: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.body,
+    fontWeight: '600',
+    color: colors.primary,
+    textAlign: 'center',
     marginBottom: spacing.xl,
+    marginTop: spacing.xs,
   },
   fieldGroup: {
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   label: {
     fontFamily: typography.fontFamilyPrimary,
@@ -184,13 +150,14 @@ const styles = StyleSheet.create({
     borderColor: colors.primaryLight,
     fontSize: typography.sizes.body,
     color: colors.text,
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   primaryButton: {
     backgroundColor: colors.primary,
     borderRadius: 25,
     paddingVertical: spacing.lg,
     alignItems: 'center',
-    marginTop: spacing.md,
     marginBottom: spacing.md,
   },
   buttonDisabled: {

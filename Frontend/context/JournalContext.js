@@ -30,7 +30,8 @@ export function JournalProvider({ children }) {
         }
 
         const data = await res.json();
-        setEntries(Array.isArray(data) ? data : []);
+        setEntries(Array.isArray(data.entries) ? data.entries : []);
+
       } catch (err) {
         showToast('error', 'Could not load journal entries');
       }

@@ -1,59 +1,156 @@
 from flask import Blueprint, request, jsonify
-from utils.db import db
-from models.models import User, ResetToken
+from models.models import db, User
+from werkzeug.security import generate_password_hash
+from utils.email_helper import send_otp_email, send_password_changed_confirmation
 from datetime import datetime, timedelta
 import secrets
+import logging
+import random
 
-reset_bp = Blueprint("reset", __name__)
+reset_bp = Blueprint('reset', __name__)
 
-# ---------------------
-# 1. REQUEST RESET TOKEN
-# ---------------------
-@reset_bp.route("/request", methods=["POST"])
-def request_reset():
-    data = request.json
-    email = data.get("email")
+# Utility — Generate 6-digit OTP
+def generate_otp():
+    return f"{random.randint(0, 999999):06d}"
 
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({"message": "User not found"}), 404
+# ------------------------------------------------------------
+# 1️⃣  FORGOT PASSWORD — Send OTP to Gmail
+# ------------------------------------------------------------
+@reset_bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.json or {}
+        email = data.get('email', '').strip().lower()
 
-    token = secrets.token_urlsafe(32)
-    expiry = datetime.utcnow() + timedelta(minutes=10)
+        if not email:
+            return jsonify({"message": "Email is required"}), 400
 
-    reset_token = ResetToken(user_id=user.id, token=token, expires_at=expiry)
-    db.session.add(reset_token)
-    db.session.commit()
+        if not email.endswith('@gmail.com'):
+            return jsonify({"message": "Please use a valid Gmail address"}), 400
 
-    print("\n========================")
-    print(" RESET LINK (copy this):")
-    print(f"http://localhost:5000/reset/verify?token={token}")
-    print("========================\n")
+        user = User.query.filter_by(email=email).first()
 
-    return jsonify({"message": "Reset link generated. Check backend console."})
-    
+        if not user:
+            return jsonify({"message": "No account exists with this email"}), 404
 
-# ---------------------
-# 2. RESET PASSWORD
-# ---------------------
-@reset_bp.route("/confirm", methods=["POST"])
-def confirm_reset():
-    data = request.json
-    token = data.get("token")
-    new_password = data.get("password")
+        otp_code = generate_otp()
+        expiry_time = datetime.utcnow() + timedelta(minutes=10)
 
-    reset_token = ResetToken.query.filter_by(token=token).first()
+        user.reset_token = otp_code
+        user.reset_token_expiry = expiry_time
+        db.session.commit()
 
-    if not reset_token:
-        return jsonify({"message": "Invalid token"}), 400
+        sent = send_otp_email(
+            user.email,
+            user.name or user.email.split('@')[0],
+            otp_code
+        )
 
-    if datetime.utcnow() > reset_token.expires_at:
-        return jsonify({"message": "Token expired"}), 400
+        if sent:
+            logging.info(f"OTP sent to {email}")
+            return jsonify({"message": "Reset code sent"}), 200
+        else:
+            user.reset_token = None
+            user.reset_token_expiry = None
+            db.session.commit()
+            return jsonify({"message": "Failed to send code"}), 500
 
-    user = User.query.get(reset_token.user_id)
-    user.set_password(new_password)
+    except Exception as e:
+        logging.error(f"forgot_password error: {e}")
+        db.session.rollback()
+        return jsonify({"message": "An error occurred"}), 500
 
-    db.session.delete(reset_token)
-    db.session.commit()
 
-    return jsonify({"message": "Password updated successfully"})
+# ------------------------------------------------------------
+# 2️⃣ VERIFY OTP
+# ------------------------------------------------------------
+@reset_bp.route('/verify-otp', methods=['POST'])
+def verify_otp():
+    try:
+        data = request.json or {}
+        email = data.get('email', '').strip().lower()
+        otp = data.get('otp', '').strip()
+
+        if not email or not otp:
+            return jsonify({"verified": False, "message": "Email and OTP required"}), 400
+
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.reset_token:
+            return jsonify({"verified": False, "message": "Invalid OTP"}), 400
+
+        if user.reset_token_expiry < datetime.utcnow():
+            user.reset_token = None
+            user.reset_token_expiry = None
+            db.session.commit()
+            return jsonify({"verified": False, "message": "OTP expired"}), 400
+
+        if user.reset_token != otp:
+            return jsonify({"verified": False, "message": "Invalid OTP"}), 400
+
+        # OTP is correct → generate one-time reset token
+        one_time_token = secrets.token_urlsafe(32)
+        expiry = datetime.utcnow() + timedelta(minutes=15)
+
+        user.reset_token = one_time_token
+        user.reset_token_expiry = expiry
+        db.session.commit()
+
+        return jsonify({
+            "verified": True,
+            "reset_token": one_time_token
+        }), 200
+
+    except Exception as e:
+        logging.error(f"verify_otp error: {e}")
+        return jsonify({"verified": False, "message": "Error occurred"}), 500
+
+
+# ------------------------------------------------------------
+# 3️⃣ CONFIRM PASSWORD (Reset password using token)
+# ------------------------------------------------------------
+@reset_bp.route('/confirm', methods=['POST'])
+def confirm_password():
+    try:
+        data = request.json or {}
+        
+        # Accept token from request
+        token = data.get('token', '').strip()
+        new_password = data.get('password', '')
+
+        if not token:
+            return jsonify({"message": "Token required"}), 400
+
+        if not new_password:
+            return jsonify({"message": "Password required"}), 400
+
+        if len(new_password) < 6:
+            return jsonify({"message": "Password must be at least 6 characters"}), 400
+
+        # Find user by token
+        user = User.query.filter_by(reset_token=token).first()
+
+        if not user:
+            return jsonify({"message": "Invalid reset token"}), 404
+
+        # Check token expiry
+        if user.reset_token_expiry < datetime.utcnow():
+            user.reset_token = None
+            user.reset_token_expiry = None
+            db.session.commit()
+            return jsonify({"message": "Token expired. Request new OTP"}), 400
+
+        # Update password
+        user.set_password(new_password)
+        user.reset_token = None
+        user.reset_token_expiry = None
+        db.session.commit()
+
+        send_password_changed_confirmation(user.email, user.name or user.email.split('@')[0])
+
+        logging.info(f"Password reset successful for {user.email}")
+        return jsonify({"message": "Password reset successful"}), 200
+
+    except Exception as e:
+        logging.error(f"confirm_password error: {e}")
+        db.session.rollback()
+        return jsonify({"message": "An error occurred"}), 500

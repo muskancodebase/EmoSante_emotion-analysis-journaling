@@ -67,3 +67,29 @@ def login():
 @jwt_required()
 def logout():
     return jsonify({"message": "Logout successful"}), 200
+
+
+# -------------------------
+# UC-02: DELETE ACCOUNT
+# -------------------------
+
+
+@auth_bp.route("/delete-account", methods=["DELETE"])
+@jwt_required()
+def delete_account():
+    try:
+        user_id = int(get_jwt_identity())  # 👈 FIX
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        db.session.delete(user)
+        db.session.commit()
+
+        return jsonify({"message": "Account deleted successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        print("Delete error:", e)
+        return jsonify({"message": "Error deleting account"}), 500

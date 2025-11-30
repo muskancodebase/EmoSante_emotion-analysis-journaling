@@ -10,7 +10,7 @@ export default function HomeScreen({ navigation }) {
       {/* Soft abstract background shapes */}
       <View style={styles.bgShapeTop} />
       <View style={styles.bgShapeBottom} />
-
+      
       <View style={styles.centerContent}>
         <Text style={styles.appName}>ÉmoSanté</Text>
 

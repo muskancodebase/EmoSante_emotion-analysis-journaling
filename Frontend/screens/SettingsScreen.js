@@ -2,15 +2,18 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import theme from '../theme';
 import { useFeedback } from '../context/FeedbackContext';
+import { useAuth } from '../context/AuthContext';
+import { API_BASE_URL } from '../config';
 
 const { colors, spacing, typography } = theme;
 
-import { useAuth } from '../context/AuthContext';
-
 export default function SettingsScreen({ navigation }) {
   const { showToast, showDialog } = useFeedback();
-  const { user } = useAuth();
+  const { user, token, logout } = useAuth();
 
+  // --------------------------------------
+  // LOGOUT
+  // --------------------------------------
   const handleLogout = () => {
     showDialog({
       title: 'Log out?',
@@ -18,14 +21,18 @@ export default function SettingsScreen({ navigation }) {
       confirmLabel: 'Log out',
       cancelLabel: 'Cancel',
       variant: 'danger',
-      onConfirm: () => {
-        // TODO: clear auth token/state when an auth context is added.
+      onConfirm: async () => {
+        logout();
+
         showToast('success', 'Logged out');
         navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
       },
     });
   };
 
+  // --------------------------------------
+  // DELETE ACCOUNT
+  // --------------------------------------
   const handleDeleteAccount = () => {
     showDialog({
       title: 'Delete account?',
@@ -33,10 +40,29 @@ export default function SettingsScreen({ navigation }) {
       confirmLabel: 'Delete account',
       cancelLabel: 'Cancel',
       variant: 'danger',
-      onConfirm: () => {
-        // TODO: call backend delete-account endpoint when implemented.
-        showToast('success', 'Account deletion requested');
-        navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/auth/delete-account`, {
+            method: "DELETE",
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json",
+            }
+          });
+
+          const data = await res.json();
+
+          if (res.ok) {
+            showToast('success', 'Account deleted successfully');
+            logout();
+            navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+          } else {
+            showToast('error', data.message || 'Failed to delete account');
+          }
+        } catch (error) {
+          console.log("Delete error:", error);
+          showToast('error', 'Cannot connect to server');
+        }
       },
     });
   };

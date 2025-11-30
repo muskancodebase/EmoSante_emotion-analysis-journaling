@@ -3,26 +3,59 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy.sql import func
 
+# ==========================
+# USER MODEL
+# ==========================
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # One-to-many relationship: a user can have many journal entries.
-    entries = db.relationship('JournalEntry', backref='user', lazy=True)
+    # Forgot Password
+    reset_token = db.Column(db.String(100), nullable=True)
+    reset_token_expiry = db.Column(db.DateTime, nullable=True)
 
+    # Relationship → User → Journal Entries
+    entries = db.relationship(
+        "JournalEntry",
+        backref="user",
+        lazy=True,
+        cascade="all, delete"
+    )
+
+    # Relationship → User → Reset Tokens
+    reset_tokens = db.relationship(
+        "ResetToken",
+        backref="user",
+        lazy=True,
+        cascade="all, delete"
+    )
+
+    # Password Helpers
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    def __repr__(self):
+        return f"<User {self.email}>"
+
+
+# ==========================
+# RESET TOKEN MODEL
+# ==========================
 class ResetToken(db.Model):
+    __tablename__ = "reset_tokens"
+
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
     token = db.Column(db.String(100), unique=True, nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 class JournalEntry(db.Model):
@@ -31,7 +64,7 @@ class JournalEntry(db.Model):
     title = db.Column(db.String(150), nullable=False)
     content = db.Column(db.Text, nullable=False)
     emotion = db.Column(db.String(50), nullable=True)
-    created_at = db.Column(db.DateTime(timezone=True), server_default=func.now())
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
     def to_dict(self):
@@ -51,3 +84,10 @@ class JournalEntry(db.Model):
             "dateLabel": date_label,
             "emotion": self.emotion or "Neutral",
         }
+
+
+def init_db(app):
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        
