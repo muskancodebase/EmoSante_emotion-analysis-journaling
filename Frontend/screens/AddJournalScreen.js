@@ -4,6 +4,7 @@ import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 import { useFeedback } from '../context/FeedbackContext';
 import { MOOD_OPTIONS } from '../context/moodPalette';
+ 
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
