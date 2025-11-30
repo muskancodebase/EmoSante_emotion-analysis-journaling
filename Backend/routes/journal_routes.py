@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from utils.db import db
 from models.models import JournalEntry
+from utils.openai_helper import analyze_emotion
 
 journal_bp = Blueprint("journal", __name__)
 
@@ -27,12 +28,16 @@ def create_entry():
     data = request.get_json() or {}
     content = (data.get("content") or "").strip()
     title = data.get("title") or "New entry"
-    emotion = data.get("emotion") or "Neutral"
 
     if not content:
         return jsonify({"message": "Entry content cannot be empty"}), 400
 
     user_id = get_jwt_identity()
+
+    # Prefer server-side sentiment analysis; fall back to any client-provided emotion
+    # and finally to "Neutral" if analysis fails.
+    analyzed_emotion = analyze_emotion(content)
+    emotion = analyzed_emotion or (data.get("emotion") or "Neutral")
 
     entry = JournalEntry(
         user_id=user_id,
@@ -60,17 +65,25 @@ def update_entry(entry_id):
     if not entry:
         return jsonify({"message": "Entry not found"}), 404
 
+    new_emotion = None
+
     if content is not None:
         trimmed = content.strip()
         if not trimmed:
             return jsonify({"message": "Entry content cannot be empty"}), 400
         entry.content = trimmed
+        # Re-run analysis when the content changes.
+        new_emotion = analyze_emotion(trimmed)
 
     if title is not None:
         entry.title = title or "New entry"
 
     if emotion is not None:
-        entry.emotion = emotion or "Neutral"
+        # Allow explicit overrides from the client if provided.
+        new_emotion = emotion or "Neutral"
+
+    if new_emotion is not None:
+        entry.emotion = new_emotion
 
     db.session.commit()
     return jsonify(entry.to_dict()), 200

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
@@ -7,13 +7,26 @@ import { MOOD_OPTIONS } from '../context/moodPalette';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
-export default function AddJournalScreen({ navigation }) {
+export default function AddJournalScreen({ navigation, route }) {
   const { addEntry } = useJournal();
   const { showToast } = useFeedback();
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [emotion, setEmotion] = useState('Neutral');
   const [error, setError] = useState('');
+
+  // When returning from AudioToTextScreen, pre-fill the text and emotion.
+  useEffect(() => {
+    const transcription = route?.params?.transcription;
+    const detectedEmotion = route?.params?.emotion;
+
+    if (transcription) {
+      setText(transcription);
+    }
+    if (detectedEmotion) {
+      setEmotion(detectedEmotion);
+    }
+  }, [route?.params?.transcription, route?.params?.emotion]);
 
   const handleSave = async () => {
     const trimmedTitle = title.trim();
