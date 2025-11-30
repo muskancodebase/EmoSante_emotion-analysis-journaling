@@ -10,6 +10,7 @@ export default function EmotionTagScreen({ navigation, route }) {
     route?.params?.description ||
     'This entry reflects a calm and grounded emotional state, with low intensity and steady mood.';
 
+    
   return (
     <View style={styles.overlay}>
       <View style={styles.card}>

@@ -8,7 +8,6 @@ export default function StreakScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Journaling Streak</Text>
-
       <View style={styles.streakCircleOuter}>
         <View style={styles.streakCircleInner}>
           <Text style={styles.streakEmoji}>🔥</Text>
