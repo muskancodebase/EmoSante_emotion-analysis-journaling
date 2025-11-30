@@ -12,7 +12,6 @@ const MOODS = [
   { label: 'Sad', color: '#F7C6C6', weight: 0.1 },
 ];
 
-
 export default function MoodPaletteScreen() {
   return (
     <View style={styles.container}>

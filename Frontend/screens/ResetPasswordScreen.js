@@ -8,7 +8,6 @@ export default function ResetPasswordScreen() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
-  
   const handleReset = async () => {
     const res = await fetch(`${API_BASE_URL}/reset/confirm`, {
       method: "POST",
