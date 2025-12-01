@@ -1,10 +1,38 @@
+
 from openai import OpenAI
 import os
 import tempfile
+import whisper
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY","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"))
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", "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"))
 
 ALLOWED_EMOTIONS = {"Happy", "Calm", "Neutral", "Tired", "Sad"}
+
+_whisper_model = None
+
+def _get_whisper_model():
+    global _whisper_model
+    if _whisper_model is None:
+        # Tiny model keeps things lightweight while remaining usable.
+        _whisper_model = whisper.load_model("tiny")
+    return _whisper_model
+
+def _local_whisper_transcribe(path: str):
+    """Fallback, fully local transcription using open-source Whisper.
+
+    Returns text or None on failure.
+    """
+    try:
+        model = _get_whisper_model()
+        result = model.transcribe(path, fp16=False)
+        text = (result.get("text") or "").strip()
+        if not text:
+            print("Local Whisper transcription returned no text")
+            return None
+        return text
+    except Exception as e:
+        print("Local Whisper transcription failed:", e)
+        return None
 
 def _normalize_emotion(raw):
     """Normalize the model output to one of the allowed emotion labels."""
@@ -30,7 +58,7 @@ def _normalize_emotion(raw):
     return "Neutral"
 
 def transcribe_audio(file_storage):
-    """Transcribe an uploaded audio file to text using OpenAI only.
+    """Transcribe an uploaded audio file to text using OpenAI.
 
     Accepts a Werkzeug FileStorage. Returns the transcribed text, or None on error.
     """
@@ -41,6 +69,9 @@ def transcribe_audio(file_storage):
             tmp_path = tmp.name
         file_storage.save(tmp_path)
 
+        text = None
+
+        # Try remote transcription first (if quota allows).
         try:
             with open(tmp_path, "rb") as f:
                 response = client.audio.transcriptions.create(
@@ -48,12 +79,16 @@ def transcribe_audio(file_storage):
                     file=f,
                 )
             text = getattr(response, "text", None)
-        except Exception as e:
-            print("Remote audio transcription failed:", e)
-            return None
+        except Exception as remote_err:
+            # On any remote failure (including insufficient_quota), fall back to local Whisper.
+            print("Remote audio transcription failed, falling back to local Whisper:", remote_err)
 
         if not text:
-            print("Audio transcription returned no text")
+            print("Falling back to local Whisper transcription")
+            text = _local_whisper_transcribe(tmp_path)
+
+        if not text:
+            print("Audio transcription returned no text even after fallback")
             return None
 
         return text.strip()

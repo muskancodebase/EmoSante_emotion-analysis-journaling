@@ -5,3 +5,4 @@ Flask-JWT-Extended
 Werkzeug
 openai
 python-dotenv
+openai-whisper
