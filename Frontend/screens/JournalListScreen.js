@@ -4,11 +4,15 @@ import theme from '../theme';
 import { useJournal } from '../context/JournalContext';
 import FloatingActionMenu from '../components/FloatingActionMenu';
 import { MOOD_COLORS } from '../context/moodPalette';
+import { useStreakStats } from '../context/useStreakStats';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
 export default function JournalListScreen({ navigation }) {
   const { entries } = useJournal();
+  const { currentStreak } = useStreakStats();
+
+  const streakLabel = currentStreak > 0 ? `🔥 ${currentStreak}-day streak` : 'Start your streak';
 
   const getEntryBackground = (emotion) => {
     if (emotion && MOOD_COLORS[emotion]) {
@@ -38,7 +42,7 @@ export default function JournalListScreen({ navigation }) {
           activeOpacity={0.9}
           onPress={() => navigation.navigate('Streak')}
         >
-          <Text style={styles.streakLabel}>🔥 2-day streak</Text>
+          <Text style={styles.streakLabel}>{streakLabel}</Text>
         </TouchableOpacity>
         <View style={styles.moodStrip}>
           <ScrollView

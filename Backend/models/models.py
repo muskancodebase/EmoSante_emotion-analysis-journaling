@@ -35,7 +35,12 @@ class JournalEntry(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
 
     def to_dict(self):
-        """Shape data for the mobile UI (matches JournalContext expectations)."""
+        """Shape data for the mobile UI (matches JournalContext expectations).
+
+        In addition to presentation-friendly fields, we now expose the raw
+        creation timestamp (`createdAt`) so the app can compute journaling
+        streaks and emotion history charts reliably on the client.
+        """
         # Preview: first ~180 characters of the content.
         preview = (self.content or "")[:180]
 
@@ -50,4 +55,6 @@ class JournalEntry(db.Model):
             "preview": preview,
             "dateLabel": date_label,
             "emotion": self.emotion or "Neutral",
+            # ISO 8601 timestamp for client-side streak & history calculations.
+            "createdAt": created.isoformat(),
         }

@@ -1,10 +1,22 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import theme from '../theme';
+import { useStreakStats } from '../context/useStreakStats';
+import { MOOD_COLORS } from '../context/moodPalette';
 
 const { colors, spacing, radii, typography, shadows } = theme;
 
 export default function StreakScreen() {
+  const {
+    currentStreak,
+    longestStreak,
+    entriesLast7Days,
+    lastEntryDateLabel,
+    history,
+  } = useStreakStats();
+
+  const streakTitle = currentStreak > 0 ? `${currentStreak}-day streak` : 'No active streak yet';
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Journaling Streak</Text>
@@ -12,22 +24,64 @@ export default function StreakScreen() {
       <View style={styles.streakCircleOuter}>
         <View style={styles.streakCircleInner}>
           <Text style={styles.streakEmoji}>🔥</Text>
-          <Text style={styles.streakText}>7-Day Streak</Text>
+          <Text style={styles.streakText}>{streakTitle}</Text>
         </View>
       </View>
 
       <View style={styles.statsRow}>
         <View style={styles.statsItem}>
-          <Text style={styles.statsLabel}>Entries this month</Text>
-          <Text style={styles.statsValue}>14</Text>
+          <Text style={styles.statsLabel}>Entries last 7 days</Text>
+          <Text style={styles.statsValue}>{entriesLast7Days}</Text>
         </View>
         <View style={styles.statsItem}>
           <Text style={styles.statsLabel}>Last entry</Text>
-          <Text style={styles.statsValue}>Nov 16</Text>
+          <Text style={styles.statsValue}>{lastEntryDateLabel || '—'}</Text>
         </View>
         <View style={styles.statsItem}>
           <Text style={styles.statsLabel}>Longest streak</Text>
-          <Text style={styles.statsValue}>9 days</Text>
+          <Text style={styles.statsValue}>{longestStreak} days</Text>
+        </View>
+      </View>
+
+      <View style={styles.chartCard}>
+        <Text style={styles.chartTitle}>Emotional history (last 7 days)</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chartScrollContent}
+        >
+          {history.map((day) => {
+            const color =
+              day.emotion && MOOD_COLORS[day.emotion]
+                ? MOOD_COLORS[day.emotion]
+                : colors.surfaceSoft;
+            const barHeight = 20 + Math.min(day.total, 4) * 10; // scale with entry count
+
+            return (
+              <View key={day.dateKey} style={styles.chartDay}>
+                <View
+                  style={[
+                    styles.chartBar,
+                    {
+                      backgroundColor: color,
+                      height: barHeight,
+                      opacity: day.total > 0 ? 1 : 0.4,
+                    },
+                  ]}
+                />
+                <Text style={styles.chartDayLabel}>{day.label}</Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        <View style={styles.chartLegendRow}>
+          {Object.entries(MOOD_COLORS).map(([emotion, color]) => (
+            <View key={emotion} style={styles.legendItem}>
+              <View style={[styles.legendSwatch, { backgroundColor: color }]} />
+              <Text style={styles.legendLabel}>{emotion}</Text>
+            </View>
+          ))}
         </View>
       </View>
 
@@ -90,6 +144,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.xl,
+  },
+  chartCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    ...shadows.softer,
+  },
+  chartTitle: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.subtitle,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  chartScrollContent: {
+    alignItems: 'flex-end',
+  },
+  chartDay: {
+    alignItems: 'center',
+    marginRight: spacing.sm,
+  },
+  chartBar: {
+    width: 18,
+    borderRadius: 9,
+  },
+  chartDayLabel: {
+    marginTop: spacing.xs,
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.textMuted,
+  },
+  chartLegendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing.lg,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  legendSwatch: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: spacing.xs,
+  },
+  legendLabel: {
+    fontFamily: typography.fontFamilyPrimary,
+    fontSize: typography.sizes.caption,
+    color: colors.textMuted,
   },
   statsItem: {
     flex: 1,
