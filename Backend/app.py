@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from utils.db import db, init_db
+from config import SECRET_KEY
 
 # Create Flask app
 app = Flask(__name__)
@@ -9,7 +10,8 @@ CORS(app)
 
 # Configurations
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///emosante.db"
-app.config["JWT_SECRET_KEY"] = "super-secret-key"
+# Use SECRET_KEY from Backend/backend.env for JWT signing.
+app.config["JWT_SECRET_KEY"] = SECRET_KEY
 
 # Initialize extensions
 db.init_app(app)
