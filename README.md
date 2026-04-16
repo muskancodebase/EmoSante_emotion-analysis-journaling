@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 Key Features
+## Key Features
 
 * **AI Emotion Analysis:** Automatically detects emotions from both text inputs and audio voice notes using OpenAI.
 * **Color-Coded Visualization:** Assigns colors to specific emotions for easy pattern recognition.
@@ -17,7 +17,7 @@
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Component | Technology |
 | :--- | :--- |
@@ -29,7 +29,7 @@
 | **Authentication** | JWT (JSON Web Tokens) |
 
 
-## ⚙️ Installation & Setup
+## Installation & Setup
 
 ```bash
 # ==========================================
